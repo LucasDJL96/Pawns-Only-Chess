@@ -28,7 +28,7 @@ class GameBoard {
 
     fun checkAndMovePawn(player: Player, fromCell: Cell, toCell: Cell) {
         val moveType = checkMove(player, fromCell, toCell)
-        val pawn = fromCell.pawn.get()
+        val pawn = fromCell.pawn!!
         when (moveType) {
             MoveType.DOUBLE -> {
                 val midRow = (fromCell.row + toCell.row) / 2
@@ -41,23 +41,23 @@ class GameBoard {
     }
 
     private fun checkMove(player: Player, fromCell: Cell, toCell: Cell): MoveType {
-        if (fromCell.pawn.isEmpty || !fromCell.pawn.get().belongsTo(player)) {
+        if (fromCell.pawn == null || !fromCell.pawn!!.belongsTo(player)) {
             throw IllegalPieceException()
         }
         val moveType = determineMoveType(player, fromCell, toCell)
-        if (moveType != MoveType.CAPTURE && toCell.pawn.isPresent) {
+        if (moveType != MoveType.CAPTURE && toCell.pawn != null) {
             throw IllegalMoveException()
         }
-        val pawn = fromCell.pawn.get()
+        val pawn = fromCell.pawn!!
         if (moveType == MoveType.DOUBLE && pawn.hasMoved) {
             throw IllegalMoveException()
         }
         val midRow = (fromCell.row + toCell.row) / 2
         if (moveType == MoveType.DOUBLE &&
-                cells[midRow][toCell.col].pawn.isPresent) {
+                cells[midRow][toCell.col].pawn != null) {
             throw IllegalMoveException()
         }
-        if (moveType == MoveType.CAPTURE && toCell.pawn.isEmpty && toCell != captureFlag?.first) {
+        if (moveType == MoveType.CAPTURE && toCell.pawn == null && toCell != captureFlag?.first) {
             throw IllegalMoveException()
         }
         return moveType
@@ -85,7 +85,7 @@ class GameBoard {
     }
 
     private fun movePawn(pawn: Pawn, fromCell: Cell,  toCell: Cell) {
-        if (toCell.pawn.isPresent) throw IllegalStateException("Can't move to another pawn")
+        if (toCell.pawn != null) throw IllegalStateException("Can't move to another pawn")
         pawn.setMoved()
         fromCell.empty()
         toCell.putPawn(pawn)
@@ -93,10 +93,10 @@ class GameBoard {
 
     private fun captureAtCell(player: Player, cell: Cell) {
         val cellToCapture =
-            if (cell.pawn.isPresent) cell
+            if (cell.pawn != null) cell
             else if (cell == captureFlag?.first) captureFlag!!.second
             else throw IllegalStateException()
-        val pawn = cellToCapture.pawn.get()
+        val pawn = cellToCapture.pawn!!
         if (pawn.belongsTo(player)) {
             throw IllegalMoveException()
         }
@@ -115,8 +115,8 @@ class GameBoard {
             for (j in 'a'..'h') {
                 val cell = cellFromString("$j$i")
                 val char =
-                    if (cell.pawn.isEmpty) ' '
-                    else cell.pawn.get().symbol
+                    if (cell.pawn == null) ' '
+                    else cell.pawn!!.symbol
                 print("| $char ")
             }
             println("|")
@@ -151,8 +151,8 @@ class GameBoard {
     }
 
     fun clearCaptureFlags(player: Player) {
-        if (captureFlag != null && (captureFlag!!.second.pawn.isEmpty
-                || captureFlag!!.second.pawn.get().belongsTo(player))) {
+        if (captureFlag != null && (captureFlag!!.second.pawn == null
+                || captureFlag!!.second.pawn!!.belongsTo(player))) {
             captureFlag = null
         }
     }
@@ -160,13 +160,13 @@ class GameBoard {
     fun checkIfPawnOnLastRow(player: Player): Boolean {
         val row = if (player.isFirst) 7 else 0
         return cells[row].any {
-            it.pawn.isPresent && it.pawn.get().belongsTo(player)
+            it.pawn != null && it.pawn!!.belongsTo(player)
         }
     }
 
     fun checkIfPlayerHasMoves(player: Player): Boolean {
         val playerCells = cells.flatten().filter {
-                it.pawn.isPresent && it.pawn.get().belongsTo(player)
+                it.pawn != null && it.pawn!!.belongsTo(player)
             }
         return playerCells.any { hasMovesLeft(it, player) }
     }
@@ -174,29 +174,26 @@ class GameBoard {
     private fun hasMovesLeft(cell: Cell, player: Player): Boolean {
         val sign = if (player.isFirst) 1 else -1
         val singleCell = cells[cell.row + sign][cell.col]
-        if (singleCell.pawn.isEmpty) return true
-        val doubleCell = if (cell.row + sign * 2 in 0..7) {
-             cells[cell.row + sign * 2][cell.col]
-        } else null
-        if (
-            singleCell.pawn.isEmpty &&
-            doubleCell?.pawn?.isEmpty == true &&
-            !cell.pawn.get().hasMoved
-        ) return true
+        if (singleCell.pawn == null) return true
+        // Since double step requires both cells in front to be empty
+        // it has already been covered
         val diagonalCell1 = if (cell.col + 1 <= 7) {
              cells[cell.row + sign][cell.col + 1]
         } else null
         if (
+            diagonalCell1 != null &&
             diagonalCell1 == captureFlag?.first ||
-            diagonalCell1?.pawn?.isPresent == true &&
-            !diagonalCell1.pawn.get().belongsTo(player)
+            diagonalCell1?.pawn != null &&
+            !diagonalCell1.pawn!!.belongsTo(player)
         ) return true
         val diagonalCell2 = if (cell.col - 1 >= 0) {
             cells[cell.row + sign][cell.col - 1]
         } else null
-        if (diagonalCell2 == captureFlag?.first ||
-            diagonalCell2?.pawn?.isPresent == true &&
-            !diagonalCell2.pawn.get().belongsTo(player)
+        if (
+            diagonalCell2 != null &&
+            diagonalCell2 == captureFlag?.first ||
+            diagonalCell2?.pawn != null &&
+            !diagonalCell2.pawn!!.belongsTo(player)
         ) return true
         return false
     }
@@ -208,14 +205,14 @@ class GameBoard {
     }
 
     data class Cell(val row: Int, val col: Int) {
-        var pawn = Optional.empty<Pawn>()
+        var pawn: Pawn? = null
 
         fun putPawn(pawn: Pawn) {
-            this.pawn = Optional.of(pawn)
+            this.pawn = pawn
         }
 
         fun empty() {
-            this.pawn = Optional.empty()
+            this.pawn = null
         }
 
         override fun toString(): String {
