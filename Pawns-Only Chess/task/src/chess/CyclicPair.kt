@@ -29,6 +29,15 @@ class CyclicPair<T>(private val pair: Pair<T, T>) : Iterator<T> {
         else pair.second
     }
 
+    /** Returns the component on the next position of the iterator without advancing it */
+    fun peekNext(): T {
+        return if (i % 2 == 0) pair.second
+        else pair.first
+    }
+
+    /** Returns the component on the previous position of the iterator */
+    fun last() = peekNext()
+
     /** Resets the iterator to the original position */
     fun reset() {
         i = 0

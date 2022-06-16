@@ -1,4 +1,4 @@
 package chess
 
-class IllegalPieceException : IllegalArgumentException() {
-}
+/** Exception thrown when an illegal piece is selected */
+class IllegalPieceException : IllegalArgumentException()
